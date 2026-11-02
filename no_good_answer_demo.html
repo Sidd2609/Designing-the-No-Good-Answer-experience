@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Failure is a Feature: Designing the &ldquo;No Good Answer&rdquo; experience</title>
+<style>
+:root{
+  color-scheme:light;
+  /* ~60% beige: page, cards, dividers */
+  --bg:#f1e7d3;--card:#faf4e6;--soft:#ece0c8;--line:#ddcfb2;--line2:#c4b48f;
+  /* ~30% dark green: structure, headings, the assistant */
+  --ink:#1f3a2e;--mute:#5b6a5d;--green:#2c5a43;--green2:#447a5a;--gtint:#e2e9d6;
+  /* ~10% accents: cherry = numbers and critical, orange = action and attention */
+  --cherry:#9b1b30;--orange:#c8641a;--orange-ink:#9a4a0c;--ptint:#f6dcbd;--ptint2:#efc795;
+  --amber:#8f6414;--brown:#7a5c3e;--sage:#646f62;
+  --bot:var(--gtint);--usr:var(--ptint);--pilltxt:#fff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:16px 20px 56px}
+h2{font-size:16px;margin:0 0 4px;color:var(--green)}
+.sub{color:var(--mute);margin:0}
+
+/* hero */
+.hero{margin:0 0 12px}
+.kicker{font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cherry);margin:0 0 4px}
+h1{font-size:clamp(26px,3.6vw,36px);line-height:1.1;margin:0 0 4px;letter-spacing:-.02em;color:var(--green)}
+.hero .sub{font-size:16px}
+h1 .h1b{display:block;font-size:.5em;font-weight:600;letter-spacing:0;color:var(--ink);margin-top:3px}
+.fine{font-size:11.5px;color:var(--mute);margin:8px 0 0}
+
+/* boxes: outer card holds inner panels */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 1px 0 rgba(31,58,46,.05),0 6px 18px rgba(31,58,46,.06)}
+.inner{background:var(--bg);border-radius:10px;padding:14px}
+.inner+.inner{margin-top:12px}
+.inner-h{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-ink);margin:0 0 6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.brief{padding:10px 12px;margin-bottom:12px}
+.brief .two{margin-top:0;gap:10px}
+.brief .inner{padding:9px 12px}
+.brief .inner p:not(.inner-h){font-size:14px;line-height:1.4}
+.brief .inner-h{margin-bottom:3px}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+.inner p{margin:0}
+
+html{scroll-behavior:smooth}
+.btn{background:var(--orange);color:var(--pilltxt);border:0;padding:8px 18px;border-radius:999px;font-weight:700;cursor:pointer;font-size:14px}
+.btn:hover{filter:brightness(1.1)}.btn:focus-visible{outline:2px solid var(--orange-ink);outline-offset:2px}
+.tool{font-size:13px;color:var(--mute);display:flex;align-items:center;gap:6px}
+.tool select{width:auto;padding:4px 6px}
+
+.grid{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;align-items:start}
+.grid>.card{margin-bottom:0}
+@media (max-width:860px){.grid{grid-template-columns:1fr}.col-calc{order:1}.col-ctl{order:2}}
+
+/* customer section */
+#custCard{padding:14px 16px}
+.chead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;margin-bottom:8px}
+.chead h2{margin:0}
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.pick{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+.pick select{width:auto;min-width:230px;max-width:100%}
+.strip{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 16px;margin:0 0 8px;min-height:28px}
+.status{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:13px;color:var(--ink);min-width:0;flex:1}
+.live{width:9px;height:9px;border-radius:50%;background:var(--line2);flex:0 0 auto}
+.live.on{background:var(--orange);animation:pulse 1s infinite}
+.live.done{background:var(--green)}
+.why-s{color:var(--mute)}
+.seehow{color:var(--orange-ink);font-weight:700;text-decoration:none;border-bottom:1.5px solid var(--orange);white-space:nowrap}
+.seehow:focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:2px}
+.tools{display:flex;gap:12px;align-items:center}
+.chatwin{background:var(--bg);border-radius:12px;padding:10px 14px}
+
+/* controls */
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 2px}
+.lrow{display:flex;align-items:center;margin-top:10px}
+.lrow label{margin:0}
+.lrow .val{margin-left:auto}
+.row{display:flex;gap:10px}
+.row>div{flex:1}
+.val{font-variant-numeric:tabular-nums;color:var(--cherry);font-weight:700}
+input[type=range]{width:100%;accent-color:var(--green);margin:4px 0 0}
+select,input[type=number]{width:100%;padding:6px;border-radius:8px;border:1.5px solid var(--line2);background:var(--card);color:var(--ink)}
+select:focus-visible,input[type=number]:focus-visible,input[type=range]:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.checks label{display:flex;gap:6px;align-items:center;margin:5px 0;color:var(--ink)}
+.checks input{accent-color:var(--green)}
+.readout{margin:0;font-size:14px;color:var(--ink)}
+.readout b{color:var(--cherry);font-size:17px}
+.thr{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+@media (max-width:700px){.thr{grid-template-columns:1fr}}
+.big{font-size:28px;font-weight:700;color:var(--cherry);font-variant-numeric:tabular-nums;line-height:1.1;margin-top:6px}
+.big small{font-size:12px;font-weight:600;color:var(--mute);margin-left:4px}
+
+/* info icon + soft tooltip */
+.info{display:inline-grid;place-items:center;width:20px;height:20px;padding:0;margin-left:6px;border:0;border-radius:999px;background:var(--ptint);font-size:11px;line-height:1;cursor:help;vertical-align:middle;flex:0 0 auto}
+.info:hover,.info:focus-visible,.info.on{background:var(--ptint2);outline:2px solid var(--orange);outline-offset:1px}
+.tip{position:fixed;z-index:50;width:280px;max-width:calc(100vw - 16px);background:var(--ptint);border:1px solid #e6bf93;border-left:4px solid var(--orange);border-radius:8px;padding:9px 12px;font-size:13px;line-height:1.45;color:var(--ink);box-shadow:0 8px 24px rgba(31,58,46,.18);pointer-events:none}
+.tip b{display:block;color:var(--cherry);margin-bottom:2px}
+
+/* pills */
+.pill{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;color:var(--pilltxt);letter-spacing:.02em}
+.p-ANSWER{background:var(--green)}.p-ANSWER_CAVEAT{background:var(--green2)}.p-CLARIFY{background:var(--orange)}
+.p-IDK{background:var(--amber)}.p-HANDOFF{background:var(--cherry)}.p-TICKET{background:var(--brown)}.p-OUT_OF_SCOPE{background:var(--sage)}
+.pill.pop{animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+.why{margin:8px 0 0;color:var(--mute)}
+
+/* chat */
+.msgs{height:clamp(190px,30vh,260px);overflow-y:auto;padding:2px;scroll-behavior:smooth}
+.b{max-width:min(92%,640px);padding:9px 14px;border-radius:14px;margin:6px 0;width:fit-content}
+.b.bot{background:var(--bot);border:1px solid #c9d6bb;border-top-left-radius:3px}
+.b.usr{background:var(--usr);border:1px solid #e6bf93;margin-left:auto;border-top-right-radius:3px}
+.b.src{font-size:12px;color:var(--mute);background:none;padding:0 14px;margin:0;max-width:100%}
+.up{animation:up .35s ease both}
+.typing{display:inline-flex;gap:4px;padding:11px 14px;background:var(--bot);border-radius:14px;border-top-left-radius:3px;margin:6px 0}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--mute);animation:bounce 1s infinite ease-in-out}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+.chip{border:1.5px solid var(--orange);color:var(--orange-ink);font-weight:600;padding:4px 12px;border-radius:999px;font-size:13px;background:var(--card)}
+.composer{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line2);border-radius:999px;padding:6px 14px;margin-top:8px;background:var(--card);min-height:40px;transition:border-color .2s}
+.composer.live{border-color:var(--orange)}
+.composer{width:100%}
+.composer .ph{flex:1 1 auto;min-width:0;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.composer .txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden}
+.composer [hidden]{display:none}
+.caret{display:inline-block;width:2px;height:1.05em;background:var(--orange);margin-left:1px;vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+.send{width:26px;height:26px;border-radius:50%;background:var(--line);color:var(--mute);display:grid;place-items:center;font-size:13px;transition:background .2s,color .2s}
+.composer.live .send{background:var(--orange);color:#fff}
+.agent{font-size:12px;border:1px dashed var(--line2);border-radius:8px;padding:8px;margin-top:10px;color:var(--mute);background:var(--card)}
+
+/* inside the assistant */
+.steps{list-style:none;margin:0;padding:0}
+.step{display:flex;gap:10px;padding:8px 0;opacity:.4;transition:opacity .3s}
+.step+.step{border-top:1px solid var(--line)}
+.step.active,.step.show{opacity:1}
+.dot{flex:0 0 24px;height:24px;border-radius:50%;background:var(--line);color:var(--ink);display:grid;place-items:center;font-size:12px;font-weight:700;transition:background .3s}
+.step.active .dot{background:var(--orange);color:#fff;animation:pulse 1s infinite}
+.step.show .dot{background:var(--green);color:var(--pilltxt)}
+.sbody{flex:1;min-width:0}
+.stitle{font-weight:600;display:flex;align-items:center}
+.det{max-height:0;overflow:hidden;opacity:0;transition:max-height .6s ease,opacity .4s ease}
+.step.show .det{max-height:340px;opacity:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tag{font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 8px}
+.tag.hot{border-color:var(--cherry);color:var(--cherry);font-weight:600}
+.mrow{margin-top:8px}
+.mlab{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--mute)}
+.mlab b{color:var(--cherry);font-variant-numeric:tabular-nums;font-size:15px}
+.meter{position:relative;height:10px;background:var(--card);border:1px solid var(--line);border-radius:6px;margin:4px 0 2px;overflow:hidden}
+.fill{position:absolute;top:0;bottom:0;left:0;width:0;background:linear-gradient(90deg,var(--green2),var(--green));transition:width .9s cubic-bezier(.2,.8,.2,1);border-radius:6px}
+.band{position:absolute;top:0;bottom:0;background:rgba(200,100,26,.3)}
+.mk{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--cherry);border-radius:2px}
+.mnote{font-size:12px;color:var(--mute)}
+.mnote .info{margin-left:3px;width:18px;height:18px;font-size:10px}
+.trace{list-style:none;padding:0;margin:0;font-size:13px}
+.trace li{padding:4px 8px;border-radius:6px;display:flex;gap:8px;border-left:3px solid transparent;transition:background .15s,opacity .2s}
+.trace .n{width:20px;color:var(--mute)}
+.trace li.checking{background:var(--soft);border-left-color:var(--orange)}
+.trace li.no{opacity:.55}
+.trace li.fired{background:var(--gtint);border-left-color:var(--green);color:var(--green);font-weight:700}
+.trace li.skip{opacity:.3}
+
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600}
+tr.click{cursor:pointer}tr.click:hover{background:var(--soft)}
+.tablewrap{overflow-x:auto}
+
+/* glossary */
+.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:12px 0 0}
+.gl{background:var(--bg);border-radius:10px;padding:12px 14px}
+.gl dt{font-weight:700;color:var(--green);margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.gl .ico{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;background:var(--ptint);font-size:11px;flex:0 0 auto}
+.gl dd{margin:0;font-size:14px}
+.gl .eg{display:block;margin-top:6px;padding:5px 8px;background:var(--ptint);border-radius:6px;color:var(--ink);font-size:12.5px}
+
+@keyframes blink{50%{opacity:0}}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-5px);opacity:1}}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(200,100,26,.55)}100%{box-shadow:0 0 0 9px rgba(200,100,26,0)}}
+.static *,.static{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+
+  <header class="hero">
+    <h1>Failure is a Feature: <span class="h1b">Designing the &ldquo;No Good Answer&rdquo; experience</span></h1>
+    <p class="sub">What should a support bot do when it doesn't know? Watch it decide.</p>
+  </header>
+
+  <section class="card brief" aria-label="Overview">
+    <div class="two">
+      <div class="inner">
+        <p class="inner-h">The problem</p>
+        <p>Every support bot meets a question it can't answer. A confident wrong answer is costly, but so is refusing too often.</p>
+      </div>
+      <div class="inner">
+        <p class="inner-h">What you'll see</p>
+        <p>Pick a scenario. Watch the customer ask, see how sure the bot is, and read the reply it chooses from seven paths.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="custCard" aria-labelledby="custH">
+    <div class="chead">
+      <h2 id="custH">What the customer sees</h2>
+      <div class="ctl">
+        <label class="pick" for="scen">Scenario <select id="scen"></select></label>
+        <div class="tools">
+          <button class="btn" id="replay" type="button">&#9654; Replay</button>
+          <label class="tool"><input type="checkbox" id="animOn" checked> Animate</label>
+          <label class="tool">Speed
+            <select id="speed"><option value="1">Normal</option><option value="2">Fast</option><option value="0.6">Slow</option></select>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="strip">
+      <div class="status" id="status" aria-live="polite"><span class="live" id="live"></span><span id="stext">Ready</span></div>
+      <a class="seehow" href="#decide">See how it decided &darr;</a>
+    </div>
+    <div class="chatwin">
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="composer" id="composer"><span class="ph" id="ph">Type a message&hellip;</span><span class="txt" id="ctext" hidden></span><span class="send" aria-hidden="true">&#10148;</span></div>
+      <div class="agent" id="agent" hidden></div>
+    </div>
+  </section>
+
+  <div class="grid" id="decide">
+    <section class="card col-ctl" aria-labelledby="ctlH">
+      <h2 id="ctlH">Adjust the situation</h2>
+      <div class="inner" style="margin-top:10px">
+        <p class="inner-h">Search quality</p>
+        <div class="lrow"><label for="R">Retrieval (R)</label><span data-slot="retrieval"></span><span class="val" id="v_R"></span></div>
+        <input type="range" id="R" min="0" max="1" step="0.01">
+        <div class="lrow"><label for="G">Groundedness (G)</label><span data-slot="grounded"></span><span class="val" id="v_G"></span></div>
+        <input type="range" id="G" min="0" max="1" step="0.01">
+        <div class="lrow"><label for="margin">Margin</label><span data-slot="margin"></span><span class="val" id="v_margin"></span></div>
+        <input type="range" id="margin" min="0" max="1" step="0.01">
+      </div>
+      <div class="inner">
+        <p class="inner-h">Context</p>
+        <div class="lrow" style="margin-top:0"><label for="risk">Topic risk</label><span data-slot="risk"></span></div>
+        <select id="risk" style="margin-top:4px"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+        <div class="row">
+          <div><div class="lrow"><label for="failed">Failed turns</label><span data-slot="failed"></span></div><input type="number" id="failed" min="0" max="5"></div>
+          <div><div class="lrow"><label for="clar">Clarified</label><span data-slot="clarify"></span></div><input type="number" id="clar" min="0" max="3"></div>
+        </div>
+      </div>
+      <div class="inner">
+        <p class="inner-h">Flags</p>
+        <div class="checks">
+          <label><input type="checkbox" id="oos"> Out of scope</label>
+          <label><input type="checkbox" id="human"> Asked for a person</label>
+          <label><input type="checkbox" id="acct"> Needs account data</label>
+          <label><input type="checkbox" id="amb"> Ambiguous intent</label>
+          <label><input type="checkbox" id="frus"> Frustrated</label>
+          <label><input type="checkbox" id="online"> Agents online</label>
+        </div>
+      </div>
+      <div class="inner">
+        <p class="readout">Confidence <b id="cval"></b> &nbsp;vs bar <b id="tval"></b></p>
+      </div>
+    </section>
+
+    <section class="card col-calc" aria-labelledby="calcH">
+      <h2 id="calcH">How the assistant decides</h2>
+      <div class="inner" style="margin-top:10px">
+        <p class="inner-h">Inside the assistant</p>
+        <ol class="steps" id="steps"></ol>
+      </div>
+      <div class="inner">
+        <p class="inner-h">Rules, first match wins <span data-slot="rules"></span></p>
+        <ul class="trace" id="trace"></ul>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:18px" aria-labelledby="thrH">
+    <h2 id="thrH">Why the bar moves with risk</h2>
+    <p class="sub" style="font-size:13px">Answer only if confidence is above <b>c / (1 + c)</b>, where c is the <span style="white-space:nowrap">cost of a wrong answer <span data-slot="cost"></span></span>. These sliders update the animation above.</p>
+    <div class="thr">
+      <div class="inner"><p class="inner-h">Low risk</p><label for="cost_low" style="margin:0">c = <span class="val" id="cv_low"></span></label><input type="range" id="cost_low" min="0.5" max="20" step="0.5" value="1.5"><div class="big"><span id="t_low"></span><small>the bar</small></div></div>
+      <div class="inner"><p class="inner-h">Medium risk</p><label for="cost_medium" style="margin:0">c = <span class="val" id="cv_medium"></span></label><input type="range" id="cost_medium" min="0.5" max="20" step="0.5" value="3"><div class="big"><span id="t_medium"></span><small>the bar</small></div></div>
+      <div class="inner"><p class="inner-h">High risk</p><label for="cost_high" style="margin:0">c = <span class="val" id="cv_high"></span></label><input type="range" id="cost_high" min="0.5" max="20" step="0.5" value="9"><div class="big"><span id="t_high"></span><small>the bar</small></div></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="tblH">
+    <h2 id="tblH">All scenarios under the current bars</h2>
+    <p class="sub" style="font-size:13px;margin-bottom:8px">Click a row to load it into the chat above.</p>
+    <div class="tablewrap"><table><thead><tr><th>Customer says</th><th>R / G / margin</th><th>Risk</th><th>Path</th></tr></thead><tbody id="tbl"></tbody></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="glH">
+    <h2 id="glH">Glossary, in plain language</h2>
+    <p class="sub" style="font-size:13px;margin-bottom:6px"><b>Note:</b> every threshold, weight and score here is an invented design prior, not a measurement. "Acme" is fictional.</p>
+    <p class="sub" style="font-size:13px">Anywhere you see <span class="ico" style="display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:var(--ptint);font-size:10px;vertical-align:middle">&#8505;&#65039;</span> on this page, hover or tap it for a quick version of these.</p>
+    <dl class="gloss" id="gloss"></dl>
+  </section>
+</div>
+
+<script>
+(function () {
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var RISKS = ["low", "medium", "high"];
+var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+var runId = 0, speed = 1;
+
+/* ---------- glossary terms: one source for tooltips and the glossary ---------- */
+var TERMS = {
+ retrieval:{name:"Retrieval (R)", short:"How well the best page the bot found matches the question. 0 is unrelated, 1 is a perfect match.",
+  full:"The bot first looks things up in the help centre, like searching a filing cabinet. R scores how well the best page it found matches the question.", eg:"\"Reset my password\" finds the matching article, so R is high."},
+ grounded:{name:"Groundedness (G)", short:"Is every claim in the drafted answer backed by the pages found? 1 is fully supported, 0 is made up.",
+  full:"After finding pages, the bot drafts an answer. G checks that each claim in the draft is actually supported by those pages, not invented or stretched.", eg:"A page can be relevant (high R) while the draft adds a claim the page never made (low G)."},
+ margin:{name:"Margin", short:"The gap between the best match and the runner-up. A tiny gap means two readings are almost tied.",
+  full:"A big gap means there is one clear answer. A tiny gap means two readings are nearly tied, and picking one is close to a coin flip. A clear winner needs at least 0.10.", eg:"\"Can I change my plan?\" could mean upgrade, billing cycle or seats, so the margin is small."},
+ confidence:{name:"Confidence (C)", short:"The lower of R and G, so a strong score on one can't hide a weak score on the other.",
+  full:"One overall number: the lower of R and G. The chain is only as strong as its weakest link.", eg:"R 0.90 and G 0.50 gives C 0.50."},
+ cost:{name:"Cost of a wrong answer (c)", short:"How much worse a confident wrong answer is than a right one is good. Higher for charges and security than for finding a setting.",
+  full:"A judgement call about how bad a confident mistake is on this kind of topic. That is why it is a slider and not a fixed number.", eg:"c = 9 means a wrong billing answer is nine times worse than a right one is good."},
+ bar:{name:"The bar (threshold)", short:"How confident the bot must be to answer plainly: c / (1 + c). c of 9 gives 0.90, c of 1.5 gives 0.60.",
+  full:"The minimum confidence for a plain answer. It comes straight from c, so the riskier the topic, the higher the bar.", eg:"c = 3 gives a bar of 3 / (1 + 3) = 0.75."},
+ near:{name:"Near-miss band", short:"The 0.15 just under the bar. The bot answers with an \"I'm not fully sure\" and an easy exit. Never for high-risk topics.",
+  full:"Not sure enough to answer plainly, but close enough to answer with a visible caveat and a way to reach a person.", eg:"Bar 0.75 means the band runs from 0.60 to 0.75."},
+ risk:{name:"Topic risk", short:"How much damage a wrong answer could do. Low: find a setting. Medium: plan limits. High: charges, security, data deletion.",
+  full:"It decides which bar applies. Low risk is things like finding a setting, medium is plan features and limits, high is charges, security and deleting data.", eg:"\"Why was I charged twice?\" is high risk."},
+ rules:{name:"Hard rules", short:"Cases where confidence is ignored: asked for a person, frustration, two failed turns, or a high-risk topic needing account data.",
+  full:"Some situations override the score completely. A 95%-confident answer about a duplicate charge still goes to a person, because the bot can't see the account.", eg:"The rules are checked top to bottom and the first match wins."},
+ clarify:{name:"Clarifying question", short:"When two readings are nearly tied, the bot asks one short tap-to-answer question instead of guessing. Never a second.",
+  full:"One question with a few tappable choices. If the customer picks \"None of these\", or it has already been asked once, the bot moves on.", eg:"\"Which is closest: upgrade, billing cycle, or who is on my plan?\""},
+ failed:{name:"Failed turns (loop breaker)", short:"Exchanges in this chat that ended without a useful answer. At two, the bot brings in a person.",
+  full:"Rephrasing three times is the experience customers remember. After two failed turns the bot stops making them try again.", eg:"\"No, that's not what I asked!\" on the third attempt goes to a person."},
+ handoff:{name:"Hand off vs. email", short:"If a person is needed: connect live if agents are online, otherwise a pre-filled email with an honest reply time.",
+  full:"The customer is never left at a dead end. With agents online they are connected and the chat history is passed along. Offline, they get a drafted email so they don't retype anything.", eg:"The agent sees the question, what the bot tried and why it escalated."}
+};
+var TERM_ORDER = ["retrieval","grounded","margin","confidence","cost","bar","near","risk","rules","clarify","failed","handoff"];
+var INFO = "ℹ️";
+
+var SC = [
+ {name:"Reset my password", q:"How do I reset my password?", R:.92, G:.95, margin:.30, risk:"low", topic:"password reset",
+  ans:"Go to Settings > Security > Reset password, then follow the link we email you. The link works for 30 minutes.", src:"Reset your password"},
+ {name:"Change my plan (ambiguous)", q:"Can I change my plan?", R:.78, G:.80, margin:.04, risk:"medium", amb:1, topic:"plan changes",
+  chips:["Upgrade or downgrade my plan","Switch between monthly and annual billing","Change who is on my plan"]},
+ {name:"SSO in EU region (partial match)", q:"Does Pro include SSO in the EU region?", R:.66, G:.70, margin:.25, risk:"medium", topic:"SSO",
+  ans:"Pro includes SSO with SAML. The article doesn't mention regional availability.", src:"Single sign-on (SSO) overview"},
+ {name:"Charged twice", q:"Why was I charged twice this month?", R:.70, G:.60, margin:.20, risk:"high", acct:1, online:1, topic:"charges"},
+ {name:"Unknown integration", q:"Do you integrate with Zorbly?", R:.22, G:.30, margin:.05, risk:"low", topic:"integrations", near:["Integrations directory","Using the API"]},
+ {name:"Delete my data (GDPR)", q:"Delete my account and all my data.", R:.85, G:.88, margin:.30, risk:"high", acct:1, online:1, topic:"data deletion"},
+ {name:"Weather", q:"What's the weather in Leeds?", R:.05, G:.05, margin:.02, risk:"low", oos:1, topic:"off-topic"},
+ {name:"Asks for a person", q:"I want to talk to a person.", R:.30, G:.30, margin:.10, risk:"low", human:1, online:1, topic:"request for human"},
+ {name:"Third failed attempt", q:"No, that's not what I asked!", R:.40, G:.50, margin:.10, risk:"low", failed:2, frus:1, online:1, topic:"repeat failure"},
+ {name:"Charged twice, outside hours", q:"Why was I charged twice this month?", R:.70, G:.60, margin:.20, risk:"high", acct:1, online:0, topic:"charges"},
+ {name:"\"It's not working\" (vague)", q:"It's not working", R:.45, G:.40, margin:.03, risk:"low", amb:1, topic:"vague problem",
+  chips:["I can't log in","A page won't load","An export or sync is failing"]},
+ {name:"Vague, already clarified once", q:"It still doesn't work", R:.45, G:.40, margin:.03, risk:"low", amb:1, clar:1, topic:"vague problem", near:["Troubleshooting guide","Status page"]}
+];
+SC.forEach(function (s) {
+  if (s.online === undefined) s.online = 1;
+  ["oos","human","acct","amb","frus"].forEach(function (k) { s[k] = s[k] ? 1 : 0; });
+  s.failed = s.failed || 0; s.clar = s.clar || 0;
+});
+var current = SC[0];
+
+var LABEL = { ANSWER:"ANSWER", ANSWER_CAVEAT:"ANSWER WITH CAVEAT", CLARIFY:"CLARIFY", IDK:"I DON'T KNOW", HANDOFF:"HAND OFF TO A PERSON", TICKET:"EMAIL / TICKET", OUT_OF_SCOPE:"OUT OF SCOPE" };
+
+/* ---------- decision logic (same rules as decision-logic.md) ---------- */
+function thresholds() {
+  var t = {};
+  RISKS.forEach(function (r) { var c = parseFloat($("cost_" + r).value); t[r] = c / (c + 1); });
+  return t;
+}
+
+function decide(s, T) {
+  var C = Math.min(s.R, s.G), t = T[s.risk], near = t - 0.15, hi = s.margin >= 0.10;
+  var esc = s.online ? "HANDOFF" : "TICKET";
+  var rules = [
+   ["Out of scope", function () { return s.oos; }, "OUT_OF_SCOPE", "Question is not about the product."],
+   ["User asked for a person", function () { return s.human; }, esc, "Hard rule: the customer asked for a person."],
+   ["Frustration or 2+ failed turns", function () { return s.frus || s.failed >= 2; }, esc, "Hard rule: loop breaker, so stop making them rephrase."],
+   ["High risk and needs account data", function () { return s.risk === "high" && s.acct; }, esc, "Hard rule: the assistant can't see the account, so confidence is irrelevant."],
+   ["High risk and C below the bar", function () { return s.risk === "high" && C < t; }, esc, "Hard rule: high-risk topic without enough confidence."],
+   ["C at/above bar, clear winner", function () { return C >= t && hi; }, "ANSWER", "Confident and unambiguous."],
+   ["C at/above bar, near-tie, can clarify", function () { return C >= t && !hi && s.clar < 1; }, "CLARIFY", "Two interpretations are almost tied. Answering would be a coin flip."],
+   ["C at/above bar, near-tie, already clarified", function () { return C >= t && !hi; }, "ANSWER_CAVEAT", "Clarified once already: answer, flagged as uncertain."],
+   ["Near-miss band, clear winner", function () { return C >= near && hi; }, "ANSWER_CAVEAT", "Close to the bar with a clear leader: answer with a caveat and an exit."],
+   ["Near-miss band, near-tie, can clarify", function () { return C >= near && !hi && s.clar < 1; }, "CLARIFY", "Close to the bar but ambiguous: ask one question."],
+   ["Weak match but ambiguous intent, can clarify", function () { return s.R >= 0.35 && s.amb && s.clar < 1; }, "CLARIFY", "Something relevant exists but intent is unclear."],
+   ["Default", function () { return true; }, "IDK", "Not enough confidence and nothing useful to clarify. Say so honestly."]
+  ];
+  var out = { C: C, t: t, trace: [], path: null, why: "", firedN: 0, firedName: "" };
+  rules.forEach(function (r, i) {
+    var fired = false;
+    if (!out.path && r[1]()) { fired = true; out.path = r[2]; out.why = r[3]; out.firedN = i + 1; out.firedName = r[0]; }
+    out.trace.push({ n: i + 1, name: r[0], state: fired ? "fired" : (out.path ? "skip" : "no") });
+  });
+  return out;
+}
+
+/* ---------- copy (same wording as copy-deck.md) ---------- */
+function copyFor(path, s) {
+  var m = [], chips = [], agent = null;
+  var ans = s.ans || "[Answer text drawn from the retrieved article]";
+  var src = s.src || "[Article title]";
+  var near = s.near && s.near.length ? s.near : ["[Closest article 1]", "[Closest article 2]"];
+  var human = s.online ? "Talk to a person" : "Email the team";
+  if (path === "ANSWER") {
+    m.push(["bot", ans], ["src", "Source: " + src]); chips = ["That solved it", "Not quite"];
+  } else if (path === "ANSWER_CAVEAT") {
+    m.push(["bot", "Here's what I found, but I'm not fully sure it covers your situation:"], ["bot", ans], ["src", "Source: " + src],
+      ["bot", "If this doesn't match what you're seeing, I can bring in a person."]); chips = ["This helps", "Not quite, " + human.toLowerCase()];
+  } else if (path === "CLARIFY") {
+    m.push(["bot", "I want to get this right, and I can read that a few ways. Which is closest?"]);
+    chips = (s.chips && s.chips.length ? s.chips : ["[Option A]", "[Option B]", "[Option C]"]).concat(["None of these"]);
+  } else if (path === "IDK") {
+    m.push(["bot", "I couldn't find a reliable answer to that in our help content, and I don't want to guess."], ["bot", "Here's what I can do:"],
+      ["src", "Closest articles, which may not answer your question: " + near.join("; ")]);
+    chips = ["Rephrase my question", human];
+  } else if (path === "HANDOFF" || path === "TICKET") {
+    var lead = s.human ? "Of course. Connecting you with a person."
+      : (s.frus || s.failed >= 2) ? "I haven't managed to get you a good answer, and you shouldn't have to keep rephrasing. Let me bring in a person."
+      : "Questions about charges, security or your data need a person who can see your account.";
+    if (path === "HANDOFF") {
+      m.push(["bot", lead], ["bot", "I'm connecting you with a support agent now, and I'll pass along what you've told me so you won't need to repeat it."],
+        ["src", "Estimated wait: [live queue estimate]"]); chips = ["Connect me now", "Email instead"];
+    } else {
+      m.push(["bot", "Our team isn't online right now. We're back [next opening time]."],
+        ["bot", "I've drafted a message from our chat so you don't need to retype it. Send it, and you'll get a reply by email, usually within [real SLA]."]);
+      chips = ["Send to support", "Edit first"];
+    }
+    agent = "Context passed to agent. Question: \"" + s.q + "\" | Topic: " + s.topic + " | Bot attempts: " + (s.failed + s.clar + 1) +
+      " | Confidence: " + Math.min(s.R, s.G).toFixed(2);
+  } else {
+    m.push(["bot", "That's outside what I can help with. I only cover questions about Acme and your account."], ["bot", "Is there something about Acme I can help with?"]);
+  }
+  return { m: m, chips: chips, agent: agent };
+}
+
+/* ---------- helpers ---------- */
+function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+function sleep(ms, id) {
+  return new Promise(function (res, rej) { setTimeout(function () { if (id === runId) res(); else rej("stale"); }, ms / speed); });
+}
+function countUp(node, to, id, animate) {
+  var fmt = function (v) { return v.toFixed(2); };
+  if (!animate) { node.textContent = fmt(to); return; }
+  var t0 = performance.now(), dur = 900 / speed;
+  (function f(now) {
+    if (id !== runId) return;
+    var p = Math.min(1, ((now || t0) - t0) / dur);
+    node.textContent = fmt(to * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) requestAnimationFrame(f);
+  })(t0);
+}
+function scrollMsgs() { var m = $("msgs"); m.scrollTop = m.scrollHeight; }
+function setStatus(text, mode, why) {
+  var lv = $("live"); lv.className = "live" + (mode ? " " + mode : "");
+  var st = $("stext"); st.textContent = "";
+  if (text && typeof text === "object") {
+    /* a decision: show its label as a pill, never the raw object */
+    var lead = el("span", "", mode === "done" ? "Decided: " : "Replying: ");
+    lead.style.fontWeight = "600";
+    st.appendChild(lead);
+    var p = el("span", "pill p-" + text.path, LABEL[text.path] || String(text.path)); p.style.marginLeft = "6px"; st.appendChild(p);
+    if (why) { var w = el("span", "why-s", " — " + why); w.style.marginLeft = "6px"; st.appendChild(w); }
+  } else st.textContent = String(text == null ? "" : text);
+}
+
+/* ---------- info icons + soft tooltip ---------- */
+function infoBtn(term) {
+  var b = el("button", "info", INFO);
+  b.type = "button"; b.setAttribute("data-term", term);
+  b.setAttribute("aria-label", "What is " + TERMS[term].name + "?");
+  return b;
+}
+var tipEl = el("div", "tip"); tipEl.id = "tip"; tipEl.setAttribute("role", "tooltip"); tipEl.hidden = true;
+document.body.appendChild(tipEl);
+var tipBtn = null;
+function hideTip() {
+  tipEl.hidden = true;
+  if (tipBtn) { tipBtn.classList.remove("on"); tipBtn.removeAttribute("aria-describedby"); tipBtn = null; }
+}
+function showTip(btn) {
+  var t = TERMS[btn.getAttribute("data-term")]; if (!t) return;
+  hideTip();
+  tipEl.innerHTML = ""; tipEl.appendChild(el("b", "", t.name)); tipEl.appendChild(document.createTextNode(t.short));
+  tipEl.hidden = false; tipBtn = btn; btn.classList.add("on"); btn.setAttribute("aria-describedby", "tip");
+  var r = btn.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  var left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+  var top = r.bottom + 8;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+  tipEl.style.left = left + "px"; tipEl.style.top = top + "px";
+}
+function infoTarget(e) { return e.target && e.target.closest ? e.target.closest(".info") : null; }
+document.addEventListener("mouseover", function (e) { var b = infoTarget(e); if (b) showTip(b); });
+document.addEventListener("mouseout", function (e) { if (infoTarget(e) && tipBtn && document.activeElement !== tipBtn) hideTip(); });
+document.addEventListener("focusin", function (e) { var b = infoTarget(e); if (b) showTip(b); });
+document.addEventListener("focusout", function (e) { if (infoTarget(e)) hideTip(); });
+document.addEventListener("click", function (e) {
+  var b = infoTarget(e);
+  if (b) { if (tipBtn === b && !tipEl.hidden && e.detail === 0) hideTip(); else showTip(b); } else hideTip();
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") hideTip(); });
+window.addEventListener("scroll", hideTip, { passive: true });
+
+function readState() {
+  return { q: current.q, topic: current.topic, ans: current.ans, src: current.src, chips: current.chips, near: current.near,
+    R: parseFloat($("R").value), G: parseFloat($("G").value), margin: parseFloat($("margin").value), risk: $("risk").value,
+    failed: parseInt($("failed").value || "0", 10), clar: parseInt($("clar").value || "0", 10),
+    oos: $("oos").checked, human: $("human").checked, acct: $("acct").checked, amb: $("amb").checked, frus: $("frus").checked, online: $("online").checked };
+}
+
+/* ---------- "inside the assistant" steps ---------- */
+function buildSteps(s, d) {
+  var t = d.t, near = Math.max(0, t - 0.15), list = [];
+  var c = parseFloat($("cost_" + s.risk).value);
+  function step(title, term) {
+    var li = el("li", "step"), dot = el("div", "dot", "•"), body = el("div", "sbody");
+    var det = el("div", "det"), ttl = el("div", "stitle", title);
+    if (term) ttl.appendChild(infoBtn(term));
+    body.appendChild(ttl); body.appendChild(det);
+    li.appendChild(dot); li.appendChild(body);
+    var o = { li: li, dot: dot, det: det, fills: [] }; list.push(o); return o;
+  }
+  function meterRow(o, label, val, thr, nearEdge, note, term) {
+    var r = el("div", "mrow"), lab = el("div", "mlab"), num = el("b", "", "0.00");
+    var left = el("span", "", label); if (term) left.appendChild(infoBtn(term));
+    lab.appendChild(left); lab.appendChild(num); r.appendChild(lab);
+    var m = el("div", "meter");
+    if (thr != null) { var band = el("div", "band"); band.style.left = (nearEdge * 100) + "%"; band.style.width = (Math.max(0, thr - nearEdge) * 100) + "%"; m.appendChild(band); }
+    var f = el("div", "fill"); m.appendChild(f);
+    if (thr != null) { var mk = el("div", "mk"); mk.style.left = (thr * 100) + "%"; m.appendChild(mk); }
+    r.appendChild(m);
+    if (note) r.appendChild(el("div", "mnote", note));
+    o.det.appendChild(r); o.fills.push({ f: f, num: num, to: val });
+    return r;
+  }
+  function tag(box, text, hot) { box.appendChild(el("span", "tag" + (hot ? " hot" : ""), text)); }
+
+  var s1 = step("Reading the question", "risk");
+  var tags = el("div", "tags");
+  tag(tags, "Topic: " + s.topic); tag(tags, "Risk: " + s.risk, s.risk === "high");
+  if (s.oos) tag(tags, "Out of scope", true);
+  if (s.human) tag(tags, "Asked for a person", true);
+  if (s.acct) tag(tags, "Needs account data", true);
+  if (s.amb) tag(tags, "Ambiguous intent");
+  if (s.frus) tag(tags, "Frustrated", true);
+  if (s.failed > 0) tag(tags, "Failed turns: " + s.failed, s.failed >= 2);
+  if (s.clar > 0) tag(tags, "Already clarified: " + s.clar);
+  tag(tags, s.online ? "Agents online" : "No agents online");
+  s1.det.appendChild(tags);
+
+  var s2 = step("Searching the help centre", "retrieval");
+  meterRow(s2, "Best passage relevance, R", s.R);
+  meterRow(s2, "Margin over runner-up", s.margin, 0.10, 0.10, "A clear winner needs at least 0.10.", "margin");
+
+  var s3 = step("Drafting the answer and fact-checking it", "grounded");
+  meterRow(s3, "Groundedness, G", s.G, null, null, "Share of the draft's claims supported by the retrieved text.");
+
+  var s4 = step("Combining the signals", "confidence");
+  var r4 = meterRow(s4, "Confidence C = min(R, G)", d.C, t, near);
+  var n4 = el("div", "mnote", "Bar for " + s.risk + " risk = c/(1+c) = " + c + "/(1+" + c + ") = " + t.toFixed(2));
+  n4.appendChild(infoBtn("bar"));
+  n4.appendChild(document.createTextNode(". Shaded zone = near-miss band"));
+  n4.appendChild(infoBtn("near"));
+  r4.appendChild(n4);
+
+  var s5 = step("Checking the rules", "rules");
+  var rt = el("div", "mnote", "");
+  s5.det.appendChild(rt);
+
+  var s6 = step("Decision", "handoff");
+  var pill = el("span", "pill p-" + d.path, LABEL[d.path]);
+  s6.det.appendChild(el("div", "tags")).appendChild(pill);
+  s6.det.appendChild(el("p", "why", d.why));
+
+  return { list: list, ruleText: rt, pill: pill };
+}
+
+function revealStep(o, id, animate) {
+  o.li.classList.add("show"); o.dot.textContent = "✓";
+  o.fills.forEach(function (x) {
+    if (animate) requestAnimationFrame(function () { x.f.style.width = (x.to * 100) + "%"; });
+    else x.f.style.width = (x.to * 100) + "%";
+    countUp(x.num, x.to, id, animate);
+  });
+}
+
+/* ---------- chat pieces ---------- */
+function botNode(kind, text, anim) { return el("div", "b " + kind + (anim ? " up" : ""), text); }
+function typingNode() { var t = el("div", "typing"); t.appendChild(el("i")); t.appendChild(el("i")); t.appendChild(el("i")); t.setAttribute("aria-label", "Assistant is typing"); return t; }
+function setComposer(text, live) {
+  var ct = $("ctext"), ph = $("ph");
+  ct.hidden = !text; ph.hidden = !!text;
+  ct.textContent = text || "";
+  if (text) { var c = el("span", "caret"); ct.appendChild(c); ct.scrollLeft = ct.scrollWidth; }
+  $("composer").classList.toggle("live", !!live);
+}
+function chipsNode(list, anim) {
+  var w = el("div", "chips");
+  list.forEach(function (x, i) { var c = el("span", "chip" + (anim ? " up" : ""), x); if (anim) c.style.animationDelay = (i * 90) + "ms"; w.appendChild(c); });
+  return w;
+}
+
+/* ---------- table ---------- */
+function renderTable(T) {
+  var tb = $("tbl"); tb.innerHTML = "";
+  SC.forEach(function (sc, i) {
+    var ds = decide(sc, T), row = el("tr", "click");
+    row.appendChild(el("td", "", sc.q));
+    row.appendChild(el("td", "", sc.R.toFixed(2) + " / " + sc.G.toFixed(2) + " / " + sc.margin.toFixed(2)));
+    row.appendChild(el("td", "", sc.risk));
+    var td = el("td"); td.appendChild(el("span", "pill p-" + ds.path, LABEL[ds.path])); row.appendChild(td);
+    row.addEventListener("click", function () {
+      $("scen").value = String(i); load(i, animOn());
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    });
+    tb.appendChild(row);
+  });
+}
+
+/* ---------- main render / play ---------- */
+function animOn() { return $("animOn").checked; }
+
+function play(animate) {
+  var id = ++runId;
+  hideTip();
+  var s = readState(), T = thresholds(), d = decide(s, T), c = copyFor(d.path, s);
+  RISKS.forEach(function (r) { $("cv_" + r).textContent = $("cost_" + r).value; $("t_" + r).textContent = T[r].toFixed(2); });
+  ["R", "G", "margin"].forEach(function (k) { $("v_" + k).textContent = parseFloat($(k).value).toFixed(2); });
+  $("cval").textContent = d.C.toFixed(2); $("tval").textContent = d.t.toFixed(2) + " (" + s.risk + ")";
+  renderTable(T);
+
+  $("app").classList.toggle("static", !animate);
+  var msgs = $("msgs"), agent = $("agent"), stepsEl = $("steps"), traceEl = $("trace");
+  msgs.innerHTML = ""; agent.hidden = true; setComposer("", false);
+  setStatus("Ready", "", "");
+  var ui = buildSteps(s, d);
+  stepsEl.innerHTML = ""; ui.list.forEach(function (o) { stepsEl.appendChild(o.li); });
+  traceEl.innerHTML = "";
+  var lis = d.trace.map(function (t) {
+    var li = el("li", ""); li.appendChild(el("span", "n", String(t.n))); li.appendChild(el("span", "", t.name)); traceEl.appendChild(li); return li;
+  });
+  ui.ruleText.textContent = "Rule " + d.firedN + " fired: " + d.firedName + ".";
+
+  if (!animate) {
+    msgs.appendChild(botNode("usr", s.q, false));
+    ui.list.forEach(function (o) { revealStep(o, id, false); });
+    d.trace.forEach(function (t, i) { if (t.state !== "no") lis[i].classList.add(t.state); else lis[i].classList.add("no"); });
+    c.m.forEach(function (x) { msgs.appendChild(botNode(x[0] === "src" ? "src" : "bot", x[1], false)); });
+    if (c.chips.length) msgs.appendChild(chipsNode(c.chips, false));
+    if (c.agent) { agent.hidden = false; agent.textContent = c.agent; }
+    setStatus({ path: d.path }, "done", d.why);
+    scrollMsgs();
+    return;
+  }
+
+  (async function () {
+    /* 1. the customer types, then sends */
+    await sleep(300, id);
+    setStatus("Customer is typing…", "on");
+    setComposer("", true);
+    var text = s.q, stepMs = Math.max(22, Math.min(45, 1200 / text.length));
+    for (var i = 1; i <= text.length; i++) { setComposer(text.slice(0, i), true); await sleep(stepMs, id); }
+    await sleep(250, id);
+    setComposer("", false);
+    msgs.appendChild(botNode("usr", s.q, true));
+
+    /* 2. dots appear the moment the message is sent and stay until the reply lands */
+    var ty = typingNode(); msgs.appendChild(ty); scrollMsgs();
+    setStatus("Searching the help centre…", "on");
+
+    /* inside the assistant (faster) */
+    for (var k = 0; k < 4; k++) {
+      var o = ui.list[k];
+      if (k === 1) setStatus("Searching the help centre…", "on");
+      if (k === 2) setStatus("Fact-checking the draft…", "on");
+      if (k === 3) setStatus("Scoring confidence…", "on");
+      o.li.classList.add("active"); await sleep(380, id);
+      o.li.classList.remove("active"); revealStep(o, id, true);
+      await sleep(k === 0 ? 350 : 650, id);
+    }
+    setStatus("Checking the rules…", "on");
+    var o5 = ui.list[4];
+    o5.li.classList.add("active");
+    for (var r = 0; r < d.trace.length; r++) {
+      lis[r].classList.add("checking"); await sleep(150, id); lis[r].classList.remove("checking");
+      if (d.trace[r].state === "fired") { lis[r].classList.add("fired"); for (var q = r + 1; q < lis.length; q++) lis[q].classList.add("skip"); break; }
+      lis[r].classList.add("no");
+    }
+    await sleep(200, id);
+    o5.li.classList.remove("active"); revealStep(o5, id, true);
+    await sleep(300, id);
+    var o6 = ui.list[5];
+    o6.li.classList.add("active"); await sleep(250, id);
+    o6.li.classList.remove("active"); revealStep(o6, id, true); ui.pill.classList.add("pop");
+    setStatus({ path: d.path }, "on", d.why);
+    $("live").className = "live on";
+    await sleep(500, id);
+
+    /* 3. the assistant replies; dots stay visible between every message */
+    ty.remove();
+    for (var j = 0; j < c.m.length; j++) {
+      var m = c.m[j];
+      if (m[0] === "src") { msgs.appendChild(botNode("src", m[1], true)); scrollMsgs(); await sleep(220, id); continue; }
+      var ty2 = typingNode(); msgs.appendChild(ty2); scrollMsgs();
+      await sleep(450 + Math.min(700, m[1].length * 7), id);
+      ty2.remove(); msgs.appendChild(botNode("bot", m[1], true)); scrollMsgs();
+      await sleep(180, id);
+    }
+    if (c.chips.length) { msgs.appendChild(chipsNode(c.chips, true)); scrollMsgs(); await sleep(200, id); }
+    if (c.agent) { agent.hidden = false; agent.textContent = c.agent; agent.classList.add("up"); }
+    setStatus({ path: d.path }, "done", d.why);
+  })().catch(function (e) { if (e !== "stale") throw e; });
+}
+
+function load(i, animate) {
+  var s = SC[i]; current = s;
+  $("R").value = s.R; $("G").value = s.G; $("margin").value = s.margin; $("risk").value = s.risk;
+  $("failed").value = s.failed; $("clar").value = s.clar;
+  ["oos", "human", "acct", "amb", "frus", "online"].forEach(function (k) { $(k).checked = !!s[k]; });
+  play(animate);
+}
+
+/* ---------- static info slots + glossary ---------- */
+Array.prototype.forEach.call(document.querySelectorAll("[data-slot]"), function (slot) {
+  var t = slot.getAttribute("data-slot"); if (TERMS[t]) slot.appendChild(infoBtn(t));
+});
+var gl = $("gloss");
+TERM_ORDER.forEach(function (k) {
+  var t = TERMS[k], box = el("div", "gl"), dt = el("dt"), dd = el("dd");
+  dt.appendChild(el("span", "ico", INFO)); dt.appendChild(document.createTextNode(t.name));
+  dd.appendChild(document.createTextNode(t.full)); dd.appendChild(el("span", "eg", "Example: " + t.eg));
+  box.appendChild(dt); box.appendChild(dd); gl.appendChild(box);
+});
+
+/* ---------- wiring ---------- */
+var sel = $("scen");
+SC.forEach(function (s, i) { var o = el("option", "", s.name); o.value = String(i); sel.appendChild(o); });
+sel.addEventListener("change", function () { load(parseInt(sel.value, 10), animOn()); });
+["R", "G", "margin", "risk", "failed", "clar", "oos", "human", "acct", "amb", "frus", "online", "cost_low", "cost_medium", "cost_high"].forEach(function (id) {
+  $(id).addEventListener("input", function () { play(false); });
+});
+$("replay").addEventListener("click", function () { play(true); });
+$("animOn").addEventListener("change", function () { play(animOn()); });
+$("speed").addEventListener("change", function () { speed = parseFloat($("speed").value); });
+if (reduce) $("animOn").checked = false;
+load(0, animOn());
+})();
+</script>
+</body>
+</html>
